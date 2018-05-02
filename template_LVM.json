@@ -1,0 +1,233 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+    "contentVersion": "0.9.0.0",
+    "parameters": {
+        "clusterName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the HDInsight cluster to create."
+            }
+        },
+        "clusterLoginUserName": {
+            "type": "string",
+            "defaultValue": "admin",
+            "metadata": {
+                "description": "These credentials can be used to submit jobs to the cluster and to log into cluster dashboards."
+            }
+        },
+        "clusterLoginPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The password must be at least 10 characters in length and must contain at least one digit, one non-alphanumeric character, and one upper or lower case letter."
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "eastus2",
+            "metadata": {
+                "description": "The location where all azure resources will be deployed."
+            }
+        },
+        "clusterVersion": {
+            "type": "string",
+            "defaultValue": "3.6",
+            "metadata": {
+                "description": "HDInsight cluster version."
+            }
+        },
+        "clusterWorkerNodeCount": {
+            "type": "int",
+            "defaultValue": 24,
+            "metadata": {
+                "description": "The number of nodes in the HDInsight cluster."
+            }
+        },
+        "clusterKind": {
+            "type": "string",
+            "defaultValue": "HADOOP",
+            "metadata": {
+                "description": "The type of the HDInsight cluster to create."
+            }
+        },
+        "sshUserName": {
+            "type": "string",
+            "defaultValue": "sshuser",
+            "metadata": {
+                "description": "These credentials can be used to remotely access the cluster."
+            }
+        },
+        "sshPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The password must be at least 10 characters in length and must contain at least one digit, one non-alphanumeric character, and one upper or lower case letter."
+            }
+        },
+        "hiveUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "These credentials can be used to remotely access hive."
+            }
+        },
+        "hivePassword": {
+            "type": "securestring"
+        },
+        "identityCertificate": {
+            "type": "securestring"
+        },
+        "identityCertificatePassword": {
+            "type": "securestring"
+        }
+    },
+    "resources": [
+        {
+            "apiVersion": "2015-03-01-preview",
+            "name": "[parameters('clusterName')]",
+            "type": "Microsoft.HDInsight/clusters",
+            "location": "[parameters('location')]",
+            "dependsOn": [],
+            "properties": {
+                "clusterVersion": "[parameters('clusterVersion')]",
+                "osType": "Linux",
+                "tier": "standard",
+                "clusterDefinition": {
+                    "kind": "[parameters('clusterKind')]",
+                    "configurations": {
+                        "gateway": {
+                            "restAuthCredential.isEnabled": true,
+                            "restAuthCredential.username": "[parameters('clusterLoginUserName')]",
+                            "restAuthCredential.password": "[parameters('clusterLoginPassword')]"
+                        },
+                        "core-site": {
+                            "fs.defaultFS": "adl://home",
+                            "dfs.adls.home.hostname": "czrdeveus2datalake.azuredatalakestore.net",
+                            "dfs.adls.home.mountpoint": "/"
+                        },
+                        "hive-site": {
+                            "javax.jdo.option.ConnectionDriverName": "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+                            "javax.jdo.option.ConnectionURL": "jdbc:sqlserver://shelfhiveserver.database.windows.net;database=shelfhive;encrypt=true;trustServerCertificate=true;create=false;loginTimeout=300",
+                            "javax.jdo.option.ConnectionUserName": "[parameters('hiveUserName')]",
+                            "javax.jdo.option.ConnectionPassword": "[parameters('hivePassword')]"
+                        },
+                        "hive-env": {
+                            "hive_database": "Existing MSSQL Server database with SQL authentication",
+                            "hive_database_name": "shelfhive",
+                            "hive_database_type": "mssql",
+                            "hive_existing_mssql_server_database": "shelfhive",
+                            "hive_existing_mssql_server_host": "shelfhiveserver.database.windows.net",
+                            "hive_hostname": "shelfhiveserver.database.windows.net"
+                        },
+                        "clusterIdentity": {
+                            "clusterIdentity.applicationId": "fcd21a82-d0c3-4afc-9f9b-9f2cea96d8a2",
+                            "clusterIdentity.certificate": "[parameters('identityCertificate')]",
+                            "clusterIdentity.aadTenantId": "https://login.windows.net/5081e954-92b3-4459-8637-c1f00f627b63",
+                            "clusterIdentity.resourceUri": "https://datalake.azure.net/",
+                            "clusterIdentity.certificatePassword": "[parameters('identityCertificatePassword')]"
+                        }
+                    }
+                },
+                "storageProfile": {
+                    "storageaccounts": []
+                },
+                "computeProfile": {
+                    "roles": [
+                        {
+                            "name": "headnode",
+                            "minInstanceCount": 1,
+                            "targetInstanceCount": 2,
+                            "hardwareProfile": {
+                                "vmSize": "Standard_D12_V2"
+                            },
+                            "osProfile": {
+                                "linuxOperatingSystemProfile": {
+                                    "username": "[parameters('sshUserName')]",
+                                    "password": "[parameters('sshPassword')]"
+                                }
+                            },
+                            "virtualNetworkProfile": null,
+                            "scriptActions": [
+                                {
+                                    "name": "INSTALL",
+                                    "uri": "https://czrdeveusdnavmdiagsa.blob.core.windows.net/shelf-hadoop-hdi-script-actions/r-installer-v01-Final.sh",
+                                    "parameters": "",
+                                    "isHeadNode": true,
+                                    "isWorkerNode": true,
+                                    "isPersisted": true,
+                                    "isZookeeperNode": true,
+                                    "isEdgeNode": false,
+                                    "applicationName": null
+                                },
+                                {
+                                    "name": "UPDATE",
+                                    "uri": "https://czrdeveusdnavmdiagsa.blob.core.windows.net/shelf-hadoop-hdi-script-actions/UpdateR-part2_head-FINAL-LVM.sh",
+                                    "parameters": "",
+                                    "isHeadNode": true,
+                                    "isWorkerNode": false,
+                                    "isPersisted": true,
+                                    "isZookeeperNode": false,
+                                    "isEdgeNode": false,
+                                    "applicationName": null
+                                }
+                            ]
+                        },
+                        {
+                            "name": "workernode",
+                            "minInstanceCount": 1,
+                            "targetInstanceCount": 24,
+                            "hardwareProfile": {
+                                "vmSize": "Standard_D4_V2"
+                            },
+                            "osProfile": {
+                                "linuxOperatingSystemProfile": {
+                                    "username": "[parameters('sshUserName')]",
+                                    "password": "[parameters('sshPassword')]"
+                                }
+                            },
+                            "virtualNetworkProfile": null,
+                            "scriptActions": [
+                                {
+                                    "name": "INSTALL",
+                                    "uri": "https://czrdeveusdnavmdiagsa.blob.core.windows.net/shelf-hadoop-hdi-script-actions/r-installer-v01-Final.sh",
+                                    "parameters": "",
+                                    "isHeadNode": true,
+                                    "isWorkerNode": true,
+                                    "isPersisted": true,
+                                    "isZookeeperNode": true,
+                                    "isEdgeNode": false,
+                                    "applicationName": null
+                                }
+                            ]
+                        },
+                        {
+                            "name": "zookeepernode",
+                            "minInstanceCount": 1,
+                            "targetInstanceCount": 3,
+                            "hardwareProfile": {
+                                "vmSize": "Small"
+                            },
+                            "osProfile": {
+                                "linuxOperatingSystemProfile": {
+                                    "username": "[parameters('sshUserName')]",
+                                    "password": "[parameters('sshPassword')]"
+                                }
+                            },
+                            "virtualNetworkProfile": null,
+                            "scriptActions": [
+                                {
+                                    "name": "INSTALL",
+                                    "uri": "https://czrdeveusdnavmdiagsa.blob.core.windows.net/shelf-hadoop-hdi-script-actions/r-installer-v01-Final.sh",
+                                    "parameters": "",
+                                    "isHeadNode": true,
+                                    "isWorkerNode": true,
+                                    "isPersisted": true,
+                                    "isZookeeperNode": true,
+                                    "isEdgeNode": false,
+                                    "applicationName": null
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

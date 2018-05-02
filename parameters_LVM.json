@@ -1,0 +1,45 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "clusterName": {
+            "value": "HDIShelfScoringLVM"
+        },
+        "clusterLoginUserName": {
+            "value": "admin"
+        },
+        "clusterLoginPassword": {
+            "value": "P@ssw0rd01"
+        },
+        "location": {
+            "value": "eastus2"
+        },
+        "clusterWorkerNodeCount": {
+            "value": 24
+        },
+        "clusterKind": {
+            "value": "HADOOP"
+        },
+        "clusterVersion": {
+            "value": "3.6"
+        },
+        "sshUserName": {
+            "value": "sshuser"
+        },
+        "sshPassword": {
+            "value": "P@ssw0rd01"
+        },
+        "hiveUserName": {
+            "value": "adminlogin"
+        },
+        "hivePassword": {
+            "value": "P@ssw0rd"
+        },
+        "identityCertificate": {
+            "value": "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"
+        },
+        "identityCertificatePassword": {
+            "value": "P@ssw0rd01"
+        }
+    }
+}
